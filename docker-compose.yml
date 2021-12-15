@@ -4,9 +4,9 @@ services:
   monopoly:
     build: .
     container_name: monopoly
-    working_dir: /app
     volumes:
       - .:/app
+      - /app/node_modules/
     ports:
       - "3000:80"
     command: "npm start"

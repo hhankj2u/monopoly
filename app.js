@@ -1,147 +1,245 @@
-Array.prototype.search = function(key, value) {
-	for (let i = 0; i < this.length; i++) {
-		if (this[i][key] == value) return i
-	}
+Array.prototype.search = function (key, value) {
+    for (let i = 0; i < this.length; i++) {
+        if (this[i][key] == value) return i;
+    }
 
-	return false
-}
+    return false;
+};
 
-Number.prototype.pad = function() {
-	return this < 10 ? '0' + this : this
-}
+Number.prototype.pad = function () {
+    return this < 10 ? "0" + this : this;
+};
 
-const chalk = require('chalk'),
-	express = require('express'),
-	app = express(),
-	server = require('http').Server(app),
-	io = require('socket.io')(server)
+const chalk = require("chalk"),
+    express = require("express"),
+    app = express(),
+    server = require("http").Server(app),
+    io = require("socket.io")(server),
+    fs = require("fs"),
+    resolve = require("path").resolve;
 
 const timestamp = () => {
-	const date = new Date()
-	return date.getHours().pad() + ':' + date.getMinutes().pad() + ':' + date.getSeconds().pad() + ' '
-}
+    const date = new Date();
+    return (
+    /* date.getFullYear() + "-" + (date.getMonth() + 1) + "-" + date.getDate() + ' ' + */ date
+            .getHours()
+            .pad() +
+        ":" +
+        date.getMinutes().pad() +
+        ":" +
+        date.getSeconds().pad() +
+        " "
+    );
+};
 
-const players = []
-let parking = 50
+const players = [];
+let parking = 50;
 
-server.listen(80)
+server.listen(80);
 
-app.set('view engine', 'jade')
-app.use('/lib', express.static('lib'))
+app.set("view engine", "jade");
+app.use("/lib", express.static("lib"));
 
-app.get('/play/:username', (req, res) => {
-	res.render('play', { username: req.params.username })
-})
+app.get("/play/:username", (req, res) => {
+    res.render("play", { username: req.params.username });
+});
 
-io.on('connection', socket => {
-	socket.on('register', username => {
-		const player = players.search('username', username)
+app.get("/logs/:restart?", function (req, res, next) {
+    var filePath = resolve("app.log");
 
-		if (Number.isInteger(player)) {
-			players[player].id = socket.id
-			socket.emit('balance', { balance: players[player].balance })
-		} else players.push({ id: socket.id, username: username, balance: 1500 })
+    var restart = req.params.restart;
+    if (restart == "restart") {
+        console.log("==================================================");
+        players.length = 0;
 
-		console.log(timestamp() + chalk.magenta('CONNECTION: ') + chalk.gray(username + ' connected'))
-		io.emit('update', players)
-	})
+        setTimeout(() => fs.writeFileSync(filePath, ""), 100);
+    }
 
-	socket.on('pay', data => {
-		if (Number.isInteger(players.search('id', socket.id))) {
-			if (Number.isInteger(data.value) && data.value < 10000) {
-				players[players.search('id', socket.id)].balance -= parseInt(data.value)
+    res.sendFile(filePath, function (err) {
+        if (err) {
+            next(err);
+        }
+    });
+});
 
-				if (data.player == 'fine') {
-					parking += parseInt(data.value)
+io.on("connection", (socket) => {
+    socket.on("register", (username) => {
+        const player = players.search("username", username);
 
-					socket.emit('balance', {
-						balance: players[players.search('id', socket.id)].balance,
-						message: '<i class="fa fa-minus"></i>' + data.value + ' to Free Parking'
-					})
+        if (Number.isInteger(player)) {
+            players[player].id = socket.id;
+            socket.emit("balance", { balance: players[player].balance });
+        } else players.push({ id: socket.id, username: username, balance: 2000 });
 
-					console.log(timestamp() + chalk.yellow('TRANSFER: ') + chalk.gray(
-							players[players.search('id', socket.id)].username +
-							' paid a £' + data.value + ' fine'
-					))
-				} else if (data.player == 'bank') {
-					socket.emit('balance', {
-						balance: players[players.search('id', socket.id)].balance,
-						message: '<i class="fa fa-minus"></i>' + data.value + ' to the bank'
-					})
+        console.log(
+            timestamp() +
+            chalk.magenta("CONNECTION: ") +
+            chalk.gray(username + " connected")
+        );
+        io.emit("update", players);
+    });
 
-					console.log(timestamp() + chalk.yellow('TRANSFER: ') + chalk.gray(
-						players[players.search('id', socket.id)].username +
-						' paid £' + data.value + ' to the bank'
-					))
-				} else if (Number.isInteger(players.search('id', data.player))) {
-					players[players.search('id', data.player)].balance += parseInt(data.value)
+    socket.on("pay", (data) => {
+        if (Number.isInteger(players.search("id", socket.id))) {
+            if (Number.isInteger(data.value) && data.value < 10000) {
+                players[players.search("id", socket.id)].balance -= parseInt(
+                    data.value
+                );
 
-					if (data.player in io.sockets.connected) io.sockets.connected[data.player].emit('balance', {
-						balance: players[players.search('id', data.player)].balance,
-						message: '<i class="fa fa-plus"></i>' + data.value +' from ' +
-							players[players.search('id', socket.id)].username
-					})
+                if (data.player == "fine") {
+                    parking += parseInt(data.value);
 
-					socket.emit('balance', {
-						balance: players[players.search('id', socket.id)].balance,
-						message: '<i class="fa fa-minus"></i>' + data.value + ' to ' +
-							players[players.search('id', data.player)].username
-					})
+                    socket.emit("balance", {
+                        balance: players[players.search("id", socket.id)].balance,
+                        message:
+                            timestamp() +
+                            '<i class="fa fa-minus"></i>' +
+                            data.value +
+                            " to Free Parking",
+                    });
 
-					console.log(timestamp() + chalk.yellow('TRANSFER: ') + chalk.gray(
-						players[players.search('id', socket.id)].username + ' paid £' +
-						data.value + ' to ' + players[players.search('id', data.player)].username
-					))
-				}
-			}
-		}
-	})
+                    console.log(
+                        timestamp() +
+                        chalk.yellow("TRANSFER: ") +
+                        chalk.gray(
+                            players[players.search("id", socket.id)].username +
+                            " paid a " +
+                            data.value +
+                            " fine"
+                        )
+                    );
+                } else if (data.player == "bank") {
+                    socket.emit("balance", {
+                        balance: players[players.search("id", socket.id)].balance,
+                        message:
+                            timestamp() +
+                            '<i class="fa fa-minus"></i>' +
+                            data.value +
+                            " to the bank",
+                    });
 
-	socket.on('receive', data => {
-		if (Number.isInteger(players.search('id', socket.id))) {
-			if (Number.isInteger(data.value) && data.value < 10000) {
-				players[players.search('id', socket.id)].balance += parseInt(data.value)
+                    console.log(
+                        timestamp() +
+                        chalk.yellow("TRANSFER: ") +
+                        chalk.gray(
+                            players[players.search("id", socket.id)].username +
+                            " paid " +
+                            data.value +
+                            " to the bank"
+                        )
+                    );
+                } else if (Number.isInteger(players.search("id", data.player))) {
+                    players[players.search("id", data.player)].balance += parseInt(
+                        data.value
+                    );
 
-				socket.emit('balance', {
-					balance: players[players.search('id', socket.id)].balance,
-					message: '<i class="fa fa-plus"></i>' + data.value + ' from the bank'
-				})
+                    if (data.player in io.sockets.connected)
+                        io.sockets.connected[data.player].emit("balance", {
+                            balance: players[players.search("id", data.player)].balance,
+                            message:
+                                timestamp() +
+                                '<i class="fa fa-plus"></i>' +
+                                data.value +
+                                " from " +
+                                players[players.search("id", socket.id)].username,
+                        });
 
-				console.log(timestamp() + chalk.red('ADD: ') + chalk.gray(
-					players[players.search('id', socket.id)].username +
-					' received £' + data.value
-				))
-			}
-		}
-	})
+                    socket.emit("balance", {
+                        balance: players[players.search("id", socket.id)].balance,
+                        message:
+                            timestamp() +
+                            '<i class="fa fa-minus"></i>' +
+                            data.value +
+                            " to " +
+                            players[players.search("id", data.player)].username,
+                    });
 
-	socket.on('message', command => {
-		if (Number.isInteger(players.search('id', socket.id))) {
-			if (command == 'go') {
-				players[players.search('id', socket.id)].balance += 200
+                    console.log(
+                        timestamp() +
+                        chalk.yellow("TRANSFER: ") +
+                        chalk.gray(
+                            players[players.search("id", socket.id)].username +
+                            " paid " +
+                            data.value +
+                            " to " +
+                            players[players.search("id", data.player)].username
+                        )
+                    );
+                }
+            }
+        }
+    });
 
-				socket.emit('balance', {
-					balance: players[players.search('id', socket.id)].balance,
-					message: '<i class="fa fa-plus"></i>200 for passing Go'
-				})
+    socket.on("receive", (data) => {
+        if (Number.isInteger(players.search("id", socket.id))) {
+            if (Number.isInteger(data.value) && data.value < 10000) {
+                players[players.search("id", socket.id)].balance += parseInt(
+                    data.value
+                );
 
-				console.log(timestamp() + chalk.green('GO: ') + chalk.gray(
-					players[players.search('id', socket.id)].username + ' passed Go'
-				))
-			} else if (command == 'parking') {
-				players[players.search('id', socket.id)].balance += parking
+                socket.emit("balance", {
+                    balance: players[players.search("id", socket.id)].balance,
+                    message:
+                        timestamp() +
+                        '<i class="fa fa-plus"></i>' +
+                        data.value +
+                        " from the bank",
+                });
 
-				socket.emit('balance', {
-					balance: players[players.search('id', socket.id)].balance,
-					message: '<i class="fa fa-plus"></i>' + parking + ' from Free Parking'
-				})
+                console.log(
+                    timestamp() +
+                    chalk.red("ADD: ") +
+                    chalk.gray(
+                        players[players.search("id", socket.id)].username +
+                        " received " +
+                        data.value
+                    )
+                );
+            }
+        }
+    });
 
-				parking = 0
+    socket.on("message", (command) => {
+        if (Number.isInteger(players.search("id", socket.id))) {
+            if (command == "go") {
+                players[players.search("id", socket.id)].balance += 200;
 
-				console.log(timestamp() + chalk.blue('FREE PARKING: ') + chalk.gray(
-					players[players.search('id', socket.id)].username + ' collected Free Parking'
-				))
-			}
-		}
-	})
-})
+                socket.emit("balance", {
+                    balance: players[players.search("id", socket.id)].balance,
+                    message:
+                        timestamp() + '<i class="fa fa-plus"></i>200 qua trạm khởi hành',
+                });
+
+                console.log(
+                    timestamp() +
+                    chalk.green("GO: ") +
+                    chalk.gray(
+                        players[players.search("id", socket.id)].username + " passed Go"
+                    )
+                );
+            } else if (command == "parking") {
+                players[players.search("id", socket.id)].balance += parking;
+
+                socket.emit("balance", {
+                    balance: players[players.search("id", socket.id)].balance,
+                    message:
+                        timestamp() +
+                        '<i class="fa fa-plus"></i>' +
+                        parking +
+                        " from Free Parking",
+                });
+
+                parking = 0;
+
+                console.log(
+                    timestamp() +
+                    chalk.blue("FREE PARKING: ") +
+                    chalk.gray(
+                        players[players.search("id", socket.id)].username +
+                        " collected Free Parking"
+                    )
+                );
+            }
+        }
+    });
+});

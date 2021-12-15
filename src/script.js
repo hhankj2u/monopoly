@@ -11,7 +11,7 @@ $(function() {
 		$('aside form').attr('data-mode', 'pay');
 		$('li a').removeClass('selected').first().addClass('selected');
 		$('input').val('');
-		$('aside h1').html('<i class="fa fa-credit-card"></i><span>Pay Money</span>');
+		$('aside h1').html('<i class="fa fa-credit-card"></i><span>Trả tiền</span>');
 		$('aside').addClass('open');
 	});
 
@@ -20,7 +20,7 @@ $(function() {
 		$('aside form').attr('data-mode', 'receive');
 		$('li a').removeClass('selected').first().addClass('selected');
 		$('input').val('');
-		$('aside h1').html('<i class="fa fa-plus"></i><span>Receive Money</span>');
+		$('aside h1').html('<i class="fa fa-plus"></i><span>Nhận tiền</span>');
 		$('aside').addClass('open');
 	});
 
@@ -63,7 +63,7 @@ $(function() {
 	});
 
 	socket.on('balance', function(data) {
-		$('h3').html('&pound;' + data.balance);
+		$('h3').html(data.balance);
 
 		if(data.message) {
 			clearTimeout(notification);
@@ -78,15 +78,20 @@ $(function() {
 
 			notification = setTimeout(function() {
 				$('#notification span').removeClass('show');
-			}, 1500)
+			}, 3000)
+
+			$('#log').prepend('<p>'+data.message+'</p>');
 		}
 	});
 
 	socket.on('update', function(players) {
-		$('li').slice(2).remove();
+		$('li').slice(1).remove();
 
 		players.forEach(function(player) {
-			if(player.username != username) $('ul').append('<li><a data-id="' + player.id + '">' + player.username + '</a></li>');
+			if(player.username != username) 
+			{
+				$('ul').append('<li><a data-id="' + player.id + '">' + player.username + '</a></li>');
+			}
 		});
 	});
 

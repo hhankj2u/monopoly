@@ -40,7 +40,7 @@ body {
 	justify-content: center;
 	align-items: center;
 	width: 320px;
-	min-height: 100%;
+	// min-height: 100%;
 	background: $primary;
 	color: $white;
 	padding: 80px 0;
@@ -48,6 +48,11 @@ body {
 	font-family: "Oswald";
 	text-align: center;
 	user-select: none;
+}
+
+#log {
+	text-align: left;
+	padding-top: 15px;
 }
 
 header {
@@ -70,6 +75,7 @@ header {
 		font-size: 44px;
 		color: $secondary;
 	}
+
 
 	#notification {
 		position: absolute;
@@ -166,7 +172,7 @@ aside {
 		border-radius: 5px;
 		padding: 23px 18px;
 		text-align: center;
-		width: 260px;
+		width: 350px;
 
 		h1 {
 			font-weight: 400;
@@ -222,7 +228,7 @@ aside {
 			}
 
 			input {
-				width: 40px;
+				width: 100px;
 				background: #263238;
 				font-family: inherit;
 				color: inherit;

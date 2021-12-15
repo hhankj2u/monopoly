@@ -12,10 +12,12 @@
 		"gulp-autoprefixer": "^3.1.1",
 		"gulp-rename": "^1.2.2",
 		"gulp-sass": "^3.1.0",
-		"gulp-uglify": "^2.1.2"
+		"gulp-uglify": "^2.1.2",
+		"nodemon": "^2.0.15"
 	},
 	"scripts": {
 		"build": "gulp build",
-		"start": "node app.js"
+		"start": "node app.js >> app.log 2>&1",
+		"start:dev": "nodemon -e js,css,html,jade app.js >> app.log 2>&1"
 	}
 }
